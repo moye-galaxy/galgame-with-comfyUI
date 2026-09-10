@@ -630,7 +630,10 @@ async function main() {
 
   // shallow clone 保留 .git/
   log("创建 shallow clone (保留 .git 用于版本更新)...");
-  const GITHUB_REPO_URL = "https://github.com/icecranberry/galgame-with-comfyUI.git";
+  // 自建更新链路：release 包内 .git 的 remote 指向本仓库（与 launcher 的 repo_url 默认值一致）。
+  // 不能指向上游 icecranberry：本仓库 tag 只存在于 moye-galaxy，用户端 fetch --prune-tags
+  // 会把"上游不存在的 tag"删掉（版本号显示退化、可切换列表只剩上游旧版本）。
+  const GITHUB_REPO_URL = "https://github.com/moye-galaxy/galgame-with-comfyUI.git";
   // depth=50 覆盖足够历史，确保用户端 git describe / checkout tag 不出问题
   const cloneResult = await exec("git", ["clone", "--depth", "50", ROOT, RELEASE_DIR]);
   let hasGit = cloneResult.ok;

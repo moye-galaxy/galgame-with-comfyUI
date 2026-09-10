@@ -8,7 +8,11 @@ from PySide6.QtCore import QObject, Signal
 
 
 DEFAULT_CONFIG = {
-    "repo_url": "https://github.com/icecranberry/galgame-with-comfyUI.git",
+    # 自建更新链路：指向本仓库（moye-galaxy）而不是上游 icecranberry——
+    # 本仓库的 tag（v3.4.0 / 3.4.1 …）只存在于 moye-galaxy，若用上游作为 remote，
+    # 启动器「检查更新」的 git fetch --prune-tags 会把这些"上游不存在的 tag"删掉，
+    # 导致已安装版本号显示退化成分支名、且可切换列表里只剩上游旧版本。
+    "repo_url": "https://github.com/moye-galaxy/galgame-with-comfyUI.git",
     "comfyui_exe": "",
     "auto_open_browser": True,
     "check_comfyui_before_start": True,
