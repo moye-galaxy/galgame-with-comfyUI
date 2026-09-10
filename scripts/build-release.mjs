@@ -648,7 +648,16 @@ async function main() {
     // 修正 remote URL：clone 会把 origin 设为本机路径，客户电脑上不存在
     const remoteResult = await exec("git", ["remote", "set-url", "origin", GITHUB_REPO_URL], { cwd: RELEASE_DIR });
     if (remoteResult.ok) {
-      ok("shallow clone 完成，remote 已指向 GitHub");
+      // 浅克隆还会把 fetch refspec 固定成"打包时所在的本地分支"（如 merge-upstream-xxx），
+      // 而该分支在上游并不存在 → 用户点「检查更新」时 git fetch 会 fatal: couldn't find remote ref。
+      // 统一改成标准 refspec，保证只依赖 main / tags 的更新流程正常。
+      const refspecResult = await exec("git",
+        ["config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"], { cwd: RELEASE_DIR });
+      if (refspecResult.ok) {
+        ok("shallow clone 完成，remote 已指向 GitHub（refspec 已规范化为 +refs/heads/*）");
+      } else {
+        warn(`规范化 fetch refspec 失败: ${refspecResult.stderr.slice(0, 200)}，版本更新可能不可用`);
+      }
     } else {
       warn(`修正 remote URL 失败: ${remoteResult.stderr.slice(0, 200)}，版本更新可能不可用`);
     }
@@ -736,7 +745,7 @@ async function main() {
 
   // 使用说明
   const { writeFileSync } = await import("node:fs");
-  writeFileSync(resolve(RELEASE_DIR, "使用说明.txt"), [
+  const readmeLines = [
     "邻舍.EXE",
     "",
     "【首次使用，非常重要】",
@@ -749,10 +758,23 @@ async function main() {
     "3. 返回「首页」点击「启动」",
     "4. 浏览器访问 http://localhost:3099 支持手机端网页访问，网页地址在日志中显示",
     "",
-    "【手机端（安卓）】",
-    `压缩包内附带 ${APK_NAME}，安装后输入电脑端显示的局域网地址即可使用`,
-    "（相比手机浏览器：按返回键会返回上一页，而不是退出到桌面）",
-    "",
+  ];
+  // 只有真的构建出 APK 时才写这段，否则会告诉用户包里有并不存在的文件
+  if (apkBuilt) {
+    readmeLines.push(
+      "【手机端（安卓）】",
+      `压缩包内附带 ${APK_NAME}，安装后输入电脑端显示的局域网地址即可使用`,
+      "（相比手机浏览器：按返回键会返回上一页，而不是退出到桌面）",
+      "",
+    );
+  } else {
+    readmeLines.push(
+      "【手机端（安卓）】",
+      "本次发布未包含安卓 APK 壳，可用手机浏览器访问上方局域网地址使用",
+      "",
+    );
+  }
+  readmeLines.push(
     "【版本更新】",
     "切换到「版本」页签 → 点击「检查更新」",
     "如有新版本，选择后点击「切换到此版本」，会自动构建",
@@ -760,7 +782,8 @@ async function main() {
     "【常见问题】",
     "- 确保 ComfyUI 已正确安装并能正常运行",
     "- 本程序自带运行环境（Node.js/Python/Git），无需额外安装",
-  ].join("\n"), "utf-8");
+  );
+  writeFileSync(resolve(RELEASE_DIR, "使用说明.txt"), readmeLines.join("\n"), "utf-8");
   ok("使用说明.txt");
 
   // VERSION 文件（供启动器运行时读取版本号）
@@ -791,10 +814,15 @@ async function main() {
     unlinkSync(zipFile);
   }
 
-  // 使用 PowerShell Compress-Archive（Windows 内置，无需额外依赖）
+  // 用 .NET ZipFile 而不是 Compress-Archive：
+  // Compress-Archive 底层走 Get-ChildItem 通配展开，会跳过隐藏项——而 .git 目录在 Windows 上
+  // 带隐藏属性，于是"保留 .git 用于版本更新"会静默失效（用户首次「检查更新」退化成 git init + 全量 fetch）。
+  // ZipFile.CreateFromDirectory 不筛隐藏项，且写出的分隔符是 ZIP 规范要求的正斜杠。
   const zipResult = await exec("powershell", [
     "-NoProfile", "-Command",
-    `Compress-Archive -Path '${RELEASE_DIR}\\*' -DestinationPath '${zipFile}' -Force`
+    `Add-Type -AssemblyName System.IO.Compression.FileSystem; ` +
+    `[System.IO.Compression.ZipFile]::CreateFromDirectory('${RELEASE_DIR}', '${zipFile}', ` +
+    `[System.IO.Compression.CompressionLevel]::Optimal, $false)`
   ]);
   if (!zipResult.ok) { fail("zip 创建失败!"); process.exit(1); }
 
