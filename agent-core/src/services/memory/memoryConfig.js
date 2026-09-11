@@ -42,6 +42,8 @@ export const DEFAULT_MEMORY_SETTINGS = Object.freeze({
     dimensions: null,
     headers: {},
     timeoutMs: 8000,
+    // 未配置自定义 provider 时是否允许回落到随包内置的第三方嵌入服务（走项目内置凭据）
+    useBuiltin: true,
   },
   reranker: {
     enabled: false,
@@ -52,6 +54,8 @@ export const DEFAULT_MEMORY_SETTINGS = Object.freeze({
     topN: 7,
     headers: {},
     timeoutMs: 8000,
+    // 未配置自定义 provider 时是否允许回落到随包内置的第三方重排服务（每轮检索一次远端调用）
+    useBuiltin: true,
   },
 });
 
@@ -115,6 +119,7 @@ export function normalizeMemorySettings(input = {}, previous = null) {
       ...base.embedding,
       ...embedding,
       enabled: embedding.enabled === undefined ? base.embedding.enabled : Boolean(embedding.enabled),
+      useBuiltin: embedding.useBuiltin === undefined ? (base.embedding.useBuiltin ?? true) : Boolean(embedding.useBuiltin),
       headers: objectOrEmpty(embedding.headers ?? base.embedding.headers),
       dimensions: embedding.dimensions === undefined
         ? base.embedding.dimensions
@@ -125,6 +130,7 @@ export function normalizeMemorySettings(input = {}, previous = null) {
       ...base.reranker,
       ...reranker,
       enabled: reranker.enabled === undefined ? base.reranker.enabled : Boolean(reranker.enabled),
+      useBuiltin: reranker.useBuiltin === undefined ? (base.reranker.useBuiltin ?? true) : Boolean(reranker.useBuiltin),
       headers: objectOrEmpty(reranker.headers ?? base.reranker.headers),
       topN: clampInt(reranker.topN, base.reranker.topN, 1, 50),
       timeoutMs: clampInt(reranker.timeoutMs, base.reranker.timeoutMs, 1000, 60000),

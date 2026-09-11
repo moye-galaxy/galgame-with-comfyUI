@@ -61,7 +61,13 @@
             <linshe-button variant="secondary" :disabled="testingEmbedding" @click="testEmbedding">{{ testingEmbedding ? '测试中…' : '测试智能匹配' }}</linshe-button>
             </div>
           </CollapseTransition>
-          <p v-if="!form.embedding.enabled" class="disabled-note">当前使用系统默认模型；默认服务当天失败 5 次后，会自动切换到本地模型。</p>
+          <div v-if="!form.embedding.enabled" class="disabled-note builtin-note">
+            <div>
+              <strong>使用内置默认模型</strong>
+              <p>随包内置的第三方智能匹配服务（走项目内置凭据）。关闭后改用本地模型，不再产生外部调用；默认服务当天失败 5 次后也会自动切换。切换会改变向量来源，保存后会触发一次全量重新嵌入。</p>
+            </div>
+            <linshe-switch v-model="form.embedding.useBuiltin" size="sm" aria-label="使用内置默认智能匹配服务" />
+          </div>
         </section>
 
         <section class="card">
@@ -91,7 +97,13 @@
             <linshe-button variant="secondary" :disabled="testingReranker" @click="testReranker">{{ testingReranker ? '测试中…' : '测试结果优化' }}</linshe-button>
             </div>
           </CollapseTransition>
-          <p v-if="!form.reranker.enabled" class="disabled-note">当前使用系统默认排序模型；默认服务当天失败 5 次后，会自动切换到本地模型。</p>
+          <div v-if="!form.reranker.enabled" class="disabled-note builtin-note">
+            <div>
+              <strong>使用内置默认排序模型</strong>
+              <p>随包内置的第三方结果排序服务（每次记忆检索一次远端调用，走项目内置凭据）。关闭后改用本地余弦排序；默认服务当天失败 5 次后也会自动切换。</p>
+            </div>
+            <linshe-switch v-model="form.reranker.useBuiltin" size="sm" aria-label="使用内置默认结果排序服务" />
+          </div>
         </section>
       </div>
 
@@ -468,8 +480,8 @@ const form = reactive({
   activeSearch: { enabled: false, timeoutMs: 4000 },
   consolidation: { enabled: true, idleDelayMinutes: 30, minIntervalMinutes: 60, llmCallsPerRun: 3, dailyLlmCalls: 60 },
   contextBudget: { enabled: false, dynamicTokens: 8000 },
-  embedding: { enabled: false, provider: 'custom', baseURL: '', apiKey: '', model: '', dimensions: null, headers: {}, timeoutMs: 8000, hasApiKey: false },
-  reranker: { enabled: false, provider: 'custom', baseURL: '', apiKey: '', model: '', topN: 7, headers: {}, timeoutMs: 8000, hasApiKey: false },
+  embedding: { enabled: false, provider: 'custom', baseURL: '', apiKey: '', model: '', dimensions: null, headers: {}, timeoutMs: 8000, hasApiKey: false, useBuiltin: true },
+  reranker: { enabled: false, provider: 'custom', baseURL: '', apiKey: '', model: '', topN: 7, headers: {}, timeoutMs: 8000, hasApiKey: false, useBuiltin: true },
 })
 const embeddingHeaders = ref('{}')
 const rerankerHeaders = ref('{}')
@@ -806,6 +818,10 @@ textarea.ls-input { resize: vertical; font-family: ui-monospace, monospace; }
 .three-col { grid-template-columns: repeat(3, 1fr); }
 .params, .warning { margin-top: 16px; }
 .disabled-note { padding: 16px; background: rgba(85, 130, 180, .08); border-radius: 10px; }
+/* 内置服务开关行：说明文字 + 右侧开关（沿用 section-title 的左右分布） */
+.builtin-note { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.builtin-note strong { font-size: 12px; }
+.builtin-note p { margin: 4px 0 0; font-size: 12px; color: var(--text-secondary); }
 .collapse-body { padding-top: 4px; }
 .warning { border-color: rgba(var(--accent-rgb), .35); }
 .memory-manager { position: relative; z-index: 30; margin-top: 16px; }
