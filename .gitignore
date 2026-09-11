@@ -40,12 +40,19 @@ android-shell/app/src/main/res/drawable-nodpi/ic_launcher_image.*
 
 MaiBot/
 MaiBot-Container/
-<<<<<<< HEAD
 
 # 本地会话产物与分发二进制
 .mimosa/
 *.apk
 promo-3.0/
-=======
 HyperFrames/
->>>>>>> v3.3.0
+
+# 上游 AI 小镇资源生成器的本地暂存产物（非源码，不入库）
+output/
+
+# 启动器问题反馈的本地产物（feedback/<问题ID>.txt）
+feedback/
+
+# 增量补丁的下载缓存与回滚备份（由 PatchManager 维护，不入库）
+.patch-cache/
+.patch-backup/
